@@ -1,0 +1,316 @@
+# ============================================
+# 校园综合服务平台 — Docker Compose 编排
+# ============================================
+# 启动方式：
+#   1. mvn clean package -DskipTests        （先构建 JAR）
+#   2. docker-compose up -d                  （一键启动全部）
+#   3. docker-compose logs -f <service>      （查看日志）
+#   4. docker-compose down                   （停止并清理）
+# ============================================
+
+version: "3.8"
+
+services:
+
+  # ==========================================
+  #  基础设施
+  # ==========================================
+
+  mysql:
+    image: mysql:8.0
+    container_name: campus-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d   # 首次启动自动执行所有 SQL
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-time-zone=+08:00
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - campus-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - campus-net
+
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: campus-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${NACOS_PORT:-8848}:8848"
+      - "9848:9848"     # gRPC
+    volumes:
+      - nacos-data:/home/nacos/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - campus-net
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: campus-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-admin}
+    ports:
+      - "5672:5672"      # 服务端口
+      - "15672:15672"    # 管理界面
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-net
+
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: campus-sentinel
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+    ports:
+      - "${SENTINEL_PORT:-8081}:8081"
+    networks:
+      - campus-net
+
+  # ==========================================
+  #  微服务（启动顺序: Gateway 最后）
+  # ==========================================
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: user-service
+    container_name: campus-user-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_user?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${USER_SERVICE_PORT:-8082}:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  campus-news-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: campus-news-service
+    container_name: campus-news-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_news?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${NEWS_SERVICE_PORT:-8083}:8083"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  forum-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: forum-service
+    container_name: campus-forum-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_forum?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${FORUM_SERVICE_PORT:-8084}:8084"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  lost-found-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: lost-found-service
+    container_name: campus-lostfound-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8085
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_lostfound?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${LOSTFOUND_SERVICE_PORT:-8085}:8085"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  second-hand-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: second-hand-service
+    container_name: campus-secondhand-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8086
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_secondhand?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${SECONDHAND_SERVICE_PORT:-8086}:8086"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  complaint-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: complaint-service
+    container_name: campus-complaint-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8087
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_complaint?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "${COMPLAINT_SERVICE_PORT:-8087}:8087"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - campus-net
+
+  campus-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: campus-gateway
+    container_name: campus-gateway
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVERADDR: nacos:8848
+      SPRING_CLOUD_NACOS_CONFIG_SERVERADDR: nacos:8848
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      nacos:
+        condition: service_started
+      user-service:
+        condition: service_started
+    networks:
+      - campus-net
+
+# ==========================================
+#  网络 + 数据卷
+# ==========================================
+
+networks:
+  campus-net:
+    driver: bridge
+    name: campus-net
+
+volumes:
+  mysql-data:
+  redis-data:
+  nacos-data:
+  rabbitmq-data:

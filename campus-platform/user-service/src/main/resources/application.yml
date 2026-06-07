@@ -1,0 +1,45 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/campus_user?useUnicode=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 20041015
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+    sentinel:
+      transport:
+        dashboard: localhost:8081
+      eager: true
+
+# MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   # 开发环境打印 SQL
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Knife4j
+knife4j:
+  enable: true
+springdoc:
+  swagger-ui:
+    path: /doc.html
+
+# JWT
+jwt:
+  secret: Y2FtcHVzLXBsYXRmb3JtLWRlZmF1bHQtc2VjcmV0LWtleS0yMDI0LW1pbi1sZW5ndGgtMzJieXRlcys=
+  expire-ms: 604800000

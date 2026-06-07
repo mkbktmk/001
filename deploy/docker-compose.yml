@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # ============ 基础设施 ============
+  mysql:
+    image: mysql:8.0
+    container_name: campus-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 20041015
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d  # 自动建表
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # ============ 微服务 ============
+  user-service:
+    build:
+      context: ../campus-platform/user-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-user
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+      - redis
+    restart: always
+
+  news-service:
+    build:
+      context: ../campus-platform/campus-news-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-news
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mysql
+    restart: always
+
+  forum-service:
+    build:
+      context: ../campus-platform/forum-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-forum
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    ports:
+      - "8084:8084"
+    depends_on:
+      - mysql
+      - redis
+    restart: always
+
+  lostfound-service:
+    build:
+      context: ../campus-platform/lost-found-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-lostfound
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mysql
+    restart: always
+
+  secondhand-service:
+    build:
+      context: ../campus-platform/second-hand-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-secondhand
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    ports:
+      - "8086:8086"
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      - mysql
+      - redis
+    restart: always
+
+  complaint-service:
+    build:
+      context: ../campus-platform/complaint-service/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-complaint
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+      - DB_HOST=mysql
+    ports:
+      - "8087:8087"
+    depends_on:
+      - mysql
+    restart: always
+
+  gateway:
+    build:
+      context: ../campus-platform/campus-gateway/target
+      dockerfile: ../../../deploy/Dockerfile.service
+    container_name: campus-gateway
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - NACOS_ADDR=nacos:8848
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - news-service
+      - forum-service
+    restart: always
+
+  # ============ 前端 + Nginx ============
+  nginx:
+    image: nginx:alpine
+    container_name: campus-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ../campus-platform/campus-frontend/dist:/usr/share/nginx/html
+    depends_on:
+      - gateway
+    restart: always
+
+volumes:
+  mysql-data:
+  uploads-data:

@@ -1,0 +1,38 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: campus-news-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/campus_news?useUnicode=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 20041015
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+    sentinel:
+      transport:
+        dashboard: localhost:8081
+      eager: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+knife4j:
+  enable: true
+springdoc:
+  swagger-ui:
+    path: /doc.html

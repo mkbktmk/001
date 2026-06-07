@@ -1,0 +1,65 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: campus-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+        namespace: ${NACOS_NAMESPACE:}
+    gateway:
+      discovery:
+        locator:
+          enabled: true           # 自动根据服务名创建路由
+          lower-case-service-id: true
+      routes:
+        # ── 用户服务 ──
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/auth/**, /user/**
+        # ── 资讯服务 ──
+        - id: campus-news-service
+          uri: lb://campus-news-service
+          predicates:
+            - Path=/news/**
+        # ── 论坛服务 ──
+        - id: forum-service
+          uri: lb://forum-service
+          predicates:
+            - Path=/forum/**, /post/**, /comment/**, /notification/**
+        # ── 失物招领服务 ──
+        - id: lost-found-service
+          uri: lb://lost-found-service
+          predicates:
+            - Path=/lost-found/**
+        # ── 二手交易服务 ──
+        - id: second-hand-service
+          uri: lb://second-hand-service
+          predicates:
+            - Path=/second-hand/**, /uploads/**
+        # ── 报修投诉服务 ──
+        - id: complaint-service
+          uri: lb://complaint-service
+          predicates:
+            - Path=/complaint/**
+    # Sentinel 配置
+    sentinel:
+      transport:
+        dashboard: localhost:8081
+      eager: true
+
+# JWT 配置（可被 Nacos 覆盖）
+jwt:
+  secret: Y2FtcHVzLXBsYXRmb3JtLWRlZmF1bHQtc2VjcmV0LWtleS0yMDI0LW1pbi1sZW5ndGgtMzJieXRlcys=
+  expire-ms: 604800000   # 7天
+
+logging:
+  level:
+    com.campus: debug
