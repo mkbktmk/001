@@ -27,3 +27,4 @@ uploads/
 # Keys
 *.pem
 *.key
+.claude/skills/mattpocock-skills/
