@@ -33,10 +33,6 @@
         <van-cell title="购买记录" icon="balance-list-o" is-link to="/my-orders" />
       </van-cell-group>
 
-      <!-- 管理员 -->
-      <van-cell-group v-if="userStore.userInfo?.role === 'admin'" inset style="margin-top:12px">
-        <van-cell title="工单管理" icon="orders-o" is-link to="/admin/complaints" />
-      </van-cell-group>
 
       <!-- 设置 -->
       <van-cell-group inset style="margin-top:12px">

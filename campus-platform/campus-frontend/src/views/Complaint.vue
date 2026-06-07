@@ -2,7 +2,7 @@
   <div class="page-container">
     <van-nav-bar title="报修投诉" fixed placeholder>
       <template #right>
-        <van-icon name="plus" size="22" @click="$router.push('/complaint-create')" />
+        <van-icon v-if="!isAdmin" name="plus" size="22" @click="router.push('/complaint-create')" />
       </template>
     </van-nav-bar>
 
@@ -15,70 +15,45 @@
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <van-list v-model:loading="loading" :finished="finished" @load="onLoad">
-        <div v-for="item in list" :key="item.id" class="cp-card" @click="showDetail(item)">
+        <div v-for="item in list" :key="item.id" class="cp-card" @click="router.push('/complaint-detail/' + item.id)">
           <div class="cp-top">
             <van-tag :type="typeColor(item.type)" size="small">{{ typeLabel(item.type) }}</van-tag>
-            <van-tag :type="statusColor(item.status)" size="small" style="margin-left:6px">
-              {{ statusLabel(item.status) }}
-            </van-tag>
+            <van-tag :type="statusColor(item.status)" size="small" style="margin-left:6px">{{ statusLabel(item.status) }}</van-tag>
             <span class="cp-title">{{ item.title }}</span>
           </div>
+          <div class="cp-sub" v-if="isAdmin">{{ item.userName }} · {{ item.location || '未填地点' }}</div>
           <div class="cp-meta">{{ formatTime(item.createTime) }}</div>
         </div>
       </van-list>
     </van-pull-refresh>
 
-    <!-- 详情弹窗 -->
-    <van-dialog v-model:show="showDialog" :title="current?.title" show-cancel-button="false">
-      <div v-if="current" class="dialog-body">
-        <p><strong>类型：</strong>{{ typeLabel(current.type) }}</p>
-        <p><strong>状态：</strong>{{ statusLabel(current.status) }}</p>
-        <p v-if="current.location"><strong>地点：</strong>{{ current.location }}</p>
-        <div v-if="complaintImages.length > 0" class="dialog-images">
-          <img v-for="(url, i) in complaintImages" :key="i" :src="url" class="dialog-img" />
-        </div>
-        <p><strong>描述：</strong>{{ current.description }}</p>
-        <p v-if="current.reply"><strong>📩 处理回复：</strong>{{ current.reply }}</p>
-        <p v-if="current.handlerName"><strong>处理人：</strong>{{ current.handlerName }}</p>
-        <p v-if="current.rating"><strong>评分：</strong>{{ '⭐'.repeat(current.rating) }}</p>
-        <p v-if="current.feedback"><strong>评价：</strong>{{ current.feedback }}</p>
-
-        <!-- 评分（已完成 + 未评分） -->
-        <div v-if="current.status === 'done' && !current.rating" class="rate-area">
-          <div class="rate-title">给这次处理打分：</div>
-          <van-rate v-model="rating" :count="5" size="24" />
-          <van-field v-model="feedback" placeholder="补充评价（选填）" />
-          <van-button type="primary" size="small" block @click="handleRate(current.id)">提交评价</van-button>
-        </div>
-      </div>
-    </van-dialog>
+    
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getMyComplaints, rateComplaint } from '../api/complaint'
-import { showToast } from 'vant'
+import { useRouter } from 'vue-router'
+import { getMyComplaints, getAdminComplaints } from '../api/complaint'
+import { useUserStore } from '../stores/user'
 
+
+const router = useRouter()
+const userStore = useUserStore()
 const list = ref([])
 const activeStatus = ref('')
 const page = ref(1)
 const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
-const showDialog = ref(false)
-const current = ref(null)
-const rating = ref(0)
-const feedback = ref('')
 
-const complaintImages = computed(() => {
-  try {
-    const imgs = current.value?.images
-    if (!imgs) return []
-    const parsed = typeof imgs === 'string' ? JSON.parse(imgs) : imgs
-    return Array.isArray(parsed) ? parsed : []
-  } catch { return [] }
-})
+
+
+
+
+
+
+const isAdmin = computed(() => userStore.userInfo?.role === 'admin')
 
 function formatTime(t) { return t ? new Date(t).toLocaleDateString('zh-CN') : '' }
 function typeLabel(t) { return ({ repair: '报修', complaint: '投诉', suggest: '建议' })[t] || t }
@@ -86,36 +61,23 @@ function statusLabel(s) { return ({ pending: '待处理', processing: '处理中
 function typeColor(t) { return ({ repair: 'primary', complaint: 'danger', suggest: 'warning' })[t] || '' }
 function statusColor(s) { return ({ pending: 'warning', processing: 'primary', done: 'success', rejected: 'danger' })[s] || '' }
 
-function showDetail(item) { current.value = item; rating.value = 0; feedback.value = ''; showDialog.value = true }
+
+
+
+
 
 async function fetchData() {
   loading.value = true
   try {
-    const res = await getMyComplaints({
-      page: page.value, size: 10,
-      status: activeStatus.value || undefined
-    })
+    const api = isAdmin.value ? getAdminComplaints : getMyComplaints
+    const res = await api({ page: page.value, size: 10, status: activeStatus.value || undefined })
     const records = res.data?.records || []
-    if (page.value === 1) list.value = records
-    else list.value.push(...records)
+    if (page.value === 1) list.value = records; else list.value.push(...records)
     finished.value = records.length < 10
   } catch {} finally { loading.value = false; refreshing.value = false }
 }
 
-async function handleRate(id) {
-  if (rating.value === 0) return showToast('请先打分')
-  try {
-    await rateComplaint(id, rating.value, feedback.value)
-    current.value.rating = rating.value
-    current.value.feedback = feedback.value
-    showToast('评价成功，感谢反馈！')
-  } catch {}
-}
-
-function onLoad() {
-  if (loading.value) return
-  if (page.value > 1) { page.value++; fetchData() }
-}
+function onLoad() { if (loading.value) return; if (page.value > 1) { page.value++; fetchData() } }
 function onRefresh() { page.value = 1; finished.value = false; fetchData() }
 function onTabChange() { page.value = 1; finished.value = false; fetchData() }
 onMounted(() => fetchData())
@@ -125,10 +87,9 @@ onMounted(() => fetchData())
 .cp-card { background: #fff; margin: 8px 16px; padding: 14px; border-radius: 10px; cursor: pointer; }
 .cp-top { display: flex; align-items: center; gap: 6px; }
 .cp-title { font-size: 15px; font-weight: 500; margin-left: 6px; }
-.cp-meta { margin-top: 8px; font-size: 11px; color: #999; }
-.dialog-body { padding: 16px; line-height: 1.8; font-size: 14px; max-height: 50vh; overflow-y: auto; }
-.rate-area { margin-top: 16px; padding: 12px; background: #f7f8fa; border-radius: 8px; }
-.rate-title { font-size: 14px; margin-bottom: 8px; }
-.dialog-images { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.dialog-img { width: 72px; height: 72px; object-fit: cover; border-radius: 4px; }
+.cp-sub { font-size: 12px; color: #999; margin-top: 6px; }
+.cp-meta { margin-top: 4px; font-size: 11px; color: #bbb; }
+
+
+
 </style>

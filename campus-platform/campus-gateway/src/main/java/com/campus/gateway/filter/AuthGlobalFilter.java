@@ -48,7 +48,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/forum/list",
             "/forum/detail",
             "/uploads",           // 上传的图片
-            "/doc.html",          // Knife4j 文档
+            "/doc.html",          // Swagger UI 文档
             "/v3/api-docs",
             "/webjars",
             "/favicon.ico"

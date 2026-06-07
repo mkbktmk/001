@@ -90,12 +90,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     @Transactional
-    public void deletePost(Long postId, Long userId) {
+    public void deletePost(Long postId, Long userId, String role) {
         Post post = getById(postId);
         if (post == null) {
             throw new BizException(404, "帖子不存在");
         }
-        if (!post.getAuthorId().equals(userId)) {
+        if (!post.getAuthorId().equals(userId) && !"admin".equals(role)) {
             throw new BizException(403, "只能删除自己的帖子");
         }
         post.setStatus(0);
@@ -246,4 +246,5 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             updateById(post);
         }
     }
+@Override    public java.util.List<Post> getMyFavorites(Long userId) {        java.util.Set<String> keys = redis.keys("post:fav:*");        if (keys == null || keys.isEmpty()) return java.util.List.of();        java.util.List<Long> ids = new java.util.ArrayList<>();        for (String k : keys) {            if (Boolean.TRUE.equals(redis.opsForSet().isMember(k, userId.toString()))) {                try { ids.add(Long.parseLong(k.replace("post:fav:", ""))); } catch (Exception ignored) {}            }        }        if (ids.isEmpty()) return java.util.List.of();        java.util.List<Post> posts = listByIds(ids);        posts.forEach(this::fillRedisCounts);        return posts;    }
 }

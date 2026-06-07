@@ -62,7 +62,7 @@ onMounted(async () => {
 .cover { width: 100%; max-height: 220px; object-fit: cover; }
 .detail h1 { font-size: 22px; line-height: 1.4; padding: 16px 20px 0; }
 .meta { font-size: 12px; color: #999; margin: 12px 20px 20px; }
-.content { font-size: 15px; line-height: 1.8; padding: 0 20px; }
+.content { font-size: 15px; white-space: pre-wrap; word-break: break-word; line-height: 1.8; padding: 0 20px; }
 .content :deep(img) { max-width: 100%; }
 .manage-bar { padding: 20px; display: flex; gap: 8px; }
 </style>

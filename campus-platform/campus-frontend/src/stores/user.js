@@ -25,7 +25,13 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = info
     localStorage.setItem('userInfo', JSON.stringify(info))
     showToast('登录成功')
-    router.push('/home')
+    try {
+      await router.push('/home')
+    } catch (e) {
+      console.error('路由跳转失败:', e)
+      // 降级：直接修改 hash
+      window.location.hash = '#/home'
+    }
   }
 
   async function fetchUserInfo() {

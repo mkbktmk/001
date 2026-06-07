@@ -76,7 +76,11 @@ async function handleRegister() {
     await register({ ...form, captchaKey: captchaKey.value })
     showToast('注册成功，快去登录吧')
     setTimeout(() => router.push('/login'), 1000)
-  } catch {} finally { loading.value = false }
+  } catch (e) {
+    showToast(e?.message || '注册失败')
+    refreshCaptcha()
+    form.captchaCode = ''
+  } finally { loading.value = false }
 }
 </script>
 

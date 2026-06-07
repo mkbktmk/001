@@ -15,7 +15,7 @@ curl -fsSL https://get.docker.com | bash
 systemctl enable docker && systemctl start docker
 
 # 安装 Docker Compose
-apt install docker-compose -y
+apt install docker-compose-plugin -y
 ```
 
 ### 3. 上传项目
@@ -43,26 +43,26 @@ chmod +x build-and-deploy.sh
 
 首次需要编译，约 5-10 分钟。之后只需：
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 常用命令
 
 ```bash
 # 查看状态
-docker-compose ps
+docker compose ps
 
 # 查看日志
-docker-compose logs -f gateway
+docker compose logs -f gateway
 
 # 重启单个服务
-docker-compose restart secondhand-service
+docker compose restart secondhand-service
 
 # 全部停止
-docker-compose stop
+docker compose stop
 
 # 全部删除
-docker-compose down -v
+docker compose down -v
 ```
 
 ## 架构

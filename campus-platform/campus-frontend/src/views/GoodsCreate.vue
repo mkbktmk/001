@@ -59,7 +59,7 @@
 import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createGoods, updateGoods, uploadImages, getGoodsDetail } from '../api/goods'
-import { showToast } from 'vant'
+import { showToast, showSuccessToast } from 'vant'
 
 const route = useRoute()
 const router = useRouter()
@@ -102,11 +102,11 @@ async function afterRead(item) {
       item.status = 'done'
     } else {
       showToast(res.message || '上传失败')
-      fileList.value = fileList.value.filter(f => f !== item)
+      item.status = 'failed'; item.message = '上传失败，点击重试'
     }
   } catch {
     showToast('上传失败')
-    fileList.value = fileList.value.filter(f => f !== item)
+    item.status = 'failed'; item.message = '上传失败，点击重试'
   } finally {
     uploading.value = false
   }
@@ -125,10 +125,10 @@ async function handleSubmit() {
     }
     if (isEdit.value) {
       await updateGoods(editId.value, data)
-      showToast('修改成功')
+      showSuccessToast('修改成功')
     } else {
       await createGoods(data)
-      showToast('发布成功')
+      showSuccessToast('发布成功')
     }
     setTimeout(() => router.back(), 800)
   } catch {} finally { loading.value = false }

@@ -11,16 +11,31 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { getMyInfo } from './api/auth'
 
 const route = useRoute()
-
-// 子页面隐藏底部导航栏
 const hideTabbar = ['Login', 'Register', 'Chat', 'Messages', 'GoodsCreate', 'GoodsEdit', 'GoodsDetail',
   'ForumCreate', 'ForumDetail', 'NewsCreate', 'NewsEdit', 'NewsDetail',
   'LostFoundCreate', 'LostFoundEdit', 'LostFoundDetail', 'ComplaintCreate',
   'ProfileEdit', 'MyFavorites', 'MyGoods', 'MyPosts', 'MyLostFound',
   'AdminComplaints', 'Notifications', 'OrderHistory']
 const showTabbar = computed(() => !hideTabbar.includes(route.name))
+
+// 心跳检测：每30秒检查 session 是否有效
+let heartbeatTimer = null
+onMounted(() => {
+  heartbeatTimer = setInterval(async () => {
+    if (!localStorage.getItem('token')) return
+    try {
+      await getMyInfo()
+    } catch {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      window.location.hash = '#/login'
+    }
+  }, 5000)
+})
+onUnmounted(() => clearInterval(heartbeatTimer))
 </script>

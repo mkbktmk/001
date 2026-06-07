@@ -47,7 +47,7 @@ import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { createPost } from '../api/post'
 import { uploadImages } from '../api/goods'
-import { showToast } from 'vant'
+import { showToast, showSuccessToast } from 'vant'
 
 const router = useRouter()
 const loading = ref(false)
@@ -72,8 +72,8 @@ async function afterRead(item) {
     const file = item.file || item
     const res = await uploadImages([file])
     if (res.code === 200) { imageUrls.value.push(...res.data); item.status = 'done' }
-    else { showToast(res.message || '上传失败'); fileList.value = fileList.value.filter(f => f !== item) }
-  } catch { showToast('上传失败'); fileList.value = fileList.value.filter(f => f !== item) }
+    else { showToast(res.message || '上传失败'); item.status = 'failed'; item.message = '上传失败，点击重试' }
+  } catch { showToast('上传失败'); item.status = 'failed'; item.message = '上传失败，点击重试' }
   finally { uploading.value = false }
 }
 
@@ -84,7 +84,7 @@ async function handleSubmit() {
     const data = { ...form }
     if (imageUrls.value.length > 0) data.images = JSON.stringify(imageUrls.value)
     await createPost(data)
-    showToast('发布成功')
+    showSuccessToast('发布成功')
     setTimeout(() => router.back(), 800)
   } catch (e) { showToast(e?.message || '发布失败，请重试') }
   finally { loading.value = false }

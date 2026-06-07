@@ -8,7 +8,17 @@
       "Bash(netstat -ano)",
       "Bash(findstr \"8082 8083 8084 8085 8086 8087 8080\")",
       "Bash(curl -s http://localhost:8082/v3/api-docs)",
-      "Bash(python \"C:\\\\Users\\\\玛卡巴卡\\\\AppData\\\\Local\\\\Temp\\\\generate_api_doc.py\")"
+      "Bash(python \"C:\\\\Users\\\\玛卡巴卡\\\\AppData\\\\Local\\\\Temp\\\\generate_api_doc.py\")",
+      "Bash(curl -s http://101.37.182.56:8086/v3/api-docs)",
+      "Bash(curl -s http://101.37.182.56:8087/v3/api-docs)",
+      "Bash(curl -s http://101.37.182.56:8086/doc.html)",
+      "Bash(curl -s http://101.37.182.56:8087/doc.html)",
+      "Bash(ssh *)",
+      "Read(//c/Users/玛卡巴卡/.ssh/**)",
+      "Bash(chmod 600 \"E:/ck/mkbk.pem\")",
+      "Bash(scp *)",
+      "Bash(python fix_ports.py)",
+      "Bash(python *)"
     ]
   }
 }

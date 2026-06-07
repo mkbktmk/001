@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # ============ 基础设施 ============
   mysql:
     image: mysql:8.0
     container_name: campus-mysql
@@ -12,7 +9,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./sql:/docker-entrypoint-initdb.d  # 自动建表
+      - ./sql:/docker-entrypoint-initdb.d
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
 
@@ -23,7 +20,16 @@ services:
       - "6379:6379"
     restart: always
 
-  # ============ 微服务 ============
+  nacos:
+    image: nacos/nacos-server:v2.3.1
+    container_name: campus-nacos
+    environment:
+      - MODE=standalone
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    restart: always
+
   user-service:
     build:
       context: ../campus-platform/user-service/target
@@ -31,14 +37,20 @@ services:
     container_name: campus-user
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
+      - SERVER_PORT=8082
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_user?useUnicode=true&serverTimezone=Asia/Shanghai
+      - SPRING_DATA_REDIS_HOST=redis
     ports:
       - "8082:8082"
     depends_on:
       - mysql
       - redis
+      - nacos
     restart: always
 
   news-service:
@@ -48,12 +60,18 @@ services:
     container_name: campus-news
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
+      - SERVER_PORT=8083
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_news?useUnicode=true&serverTimezone=Asia/Shanghai
     ports:
       - "8083:8083"
     depends_on:
       - mysql
+      - nacos
     restart: always
 
   forum-service:
@@ -63,14 +81,20 @@ services:
     container_name: campus-forum
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
+      - SERVER_PORT=8084
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_forum?useUnicode=true&serverTimezone=Asia/Shanghai
+      - SPRING_DATA_REDIS_HOST=redis
     ports:
       - "8084:8084"
     depends_on:
       - mysql
       - redis
+      - nacos
     restart: always
 
   lostfound-service:
@@ -80,12 +104,18 @@ services:
     container_name: campus-lostfound
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
+      - SERVER_PORT=8085
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_lostfound?useUnicode=true&serverTimezone=Asia/Shanghai
     ports:
       - "8085:8085"
     depends_on:
       - mysql
+      - nacos
     restart: always
 
   secondhand-service:
@@ -95,16 +125,24 @@ services:
     container_name: campus-secondhand
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
+      - SERVER_PORT=8086
+      - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=5MB
+      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=10MB
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_secondhand?useUnicode=true&serverTimezone=Asia/Shanghai
+      - SPRING_DATA_REDIS_HOST=redis
     ports:
       - "8086:8086"
     volumes:
-      - uploads-data:/app/uploads
+      - /opt/uploads:/app/uploads
     depends_on:
       - mysql
       - redis
+      - nacos
     restart: always
 
   complaint-service:
@@ -114,12 +152,18 @@ services:
     container_name: campus-complaint
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
-      - DB_HOST=mysql
+      - SERVER_PORT=8087
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campus_complaint?useUnicode=true&serverTimezone=Asia/Shanghai
     ports:
       - "8087:8087"
     depends_on:
       - mysql
+      - nacos
     restart: always
 
   gateway:
@@ -129,28 +173,33 @@ services:
     container_name: campus-gateway
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
-      - NACOS_ADDR=nacos:8848
+      - SERVER_PORT=8080
+      - SERVER_SERVLET_ENCODING_CHARSET=UTF-8
+      - SERVER_SERVLET_ENCODING_ENABLED=true
+      - SERVER_SERVLET_ENCODING_FORCE=true
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
     ports:
       - "8080:8080"
     depends_on:
       - user-service
       - news-service
       - forum-service
+      - nacos
     restart: always
 
-  # ============ 前端 + Nginx ============
   nginx:
     image: nginx:alpine
     container_name: campus-nginx
+    depends_on:
+      - gateway
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ../campus-platform/campus-frontend/dist:/usr/share/nginx/html
-    depends_on:
-      - gateway
     restart: always
 
 volumes:
   mysql-data:
-  uploads-data:
+  #uploads-data:

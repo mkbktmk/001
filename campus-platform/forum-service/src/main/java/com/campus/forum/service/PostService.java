@@ -16,7 +16,7 @@ public interface PostService extends IService<Post> {
     void createPost(Post post, Long authorId, String authorName);
 
     /** 删除帖子 */
-    void deletePost(Long postId, Long userId);
+    void deletePost(Long postId, Long userId, String role);
 
     /** 点赞/取消点赞，返回当前点赞数 */
     int toggleLike(Long postId, Long userId);
@@ -35,4 +35,5 @@ public interface PostService extends IService<Post> {
 
     /** 查询用户自己的帖子 */
     Page<Post> myPosts(int pageNum, int pageSize, Long userId);
+    java.util.List<Post> getMyFavorites(Long userId);
 }

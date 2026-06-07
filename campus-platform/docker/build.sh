@@ -18,7 +18,7 @@ echo "  ✓ JAR 构建完成"
 # 2. Docker Compose 启动
 echo ""
 echo "[2/3] Docker Compose 启动..."
-docker-compose up -d --build
+docker compose up -d --build
 echo "  ✓ 容器启动中..."
 
 # 3. 等待并检查状态
@@ -30,7 +30,7 @@ echo ""
 echo "=========================================="
 echo " 容器状态:"
 echo "=========================================="
-docker-compose ps
+docker compose ps
 
 echo ""
 echo "=========================================="

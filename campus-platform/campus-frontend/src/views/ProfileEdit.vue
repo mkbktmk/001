@@ -68,17 +68,14 @@ onMounted(async () => {
   } catch {}
 })
 
+const avatarUploading = ref(false)
+
 async function onAvatarChange(e) {
   const file = e.target.files?.[0]
   if (!file) return
-  if (!file.type.startsWith('image/')) {
-    showToast('请选择图片文件')
-    return
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('头像不能超过2MB')
-    return
-  }
+  if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return }
+  if (file.size > 5 * 1024 * 1024) { showToast('头像不能超过5MB'); return }
+  avatarUploading.value = true
   try {
     const res = await uploadImages([file])
     if (res.code === 200 && res.data.length > 0) {
@@ -87,7 +84,8 @@ async function onAvatarChange(e) {
     } else {
       showToast(res.message || '上传失败')
     }
-  } catch { showToast('上传失败') }
+  } catch (e) { showToast(e?.message || '上传超时，请重试') }
+  finally { avatarUploading.value = false }
 }
 
 async function handleSubmit() {
@@ -98,7 +96,6 @@ async function handleSubmit() {
     const res = await updateMyInfo(data)
     userStore.userInfo = { ...userStore.userInfo, ...res.data }
     localStorage.setItem('userInfo', JSON.stringify(userStore.userInfo))
-    showToast('保存成功')
     setTimeout(() => router.back(), 800)
   } catch {} finally { loading.value = false }
 }

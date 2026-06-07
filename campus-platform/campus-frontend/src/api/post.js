@@ -59,3 +59,4 @@ export function deleteComment(id) {
 export function getMyPosts(params) {
   return request.get('/post/my', { params })
 }
+export function getMyFavorites() { return request.get('/post/favorites') }
