@@ -37,7 +37,13 @@
       "Bash(cp /e/ck/dump.rdb /e/test/)",
       "Bash(cp /e/ck/start-all.bat /e/test/)",
       "Bash(cp /e/ck/stop-all.bat /e/test/)",
-      "Bash(cp /e/ck/*.md /e/test/)"
+      "Bash(cp /e/ck/*.md /e/test/)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(ssh -o StrictHostKeyChecking=no -i /e/ck/mkbk.pem root@101.37.182.56 ' *)",
+      "Bash(ssh *)"
     ]
   }
 }

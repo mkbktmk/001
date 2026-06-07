@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(python3 -c \"from docx import Document; print\\('python-docx available'\\)\")",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(python \"C:\\\\Users\\\\玛卡巴卡\\\\AppData\\\\Local\\\\Temp\\\\extract_api.py\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \"8082 8083 8084 8085 8086 8087 8080\")",
+      "Bash(curl -s http://localhost:8082/v3/api-docs)",
+      "Bash(python \"C:\\\\Users\\\\玛卡巴卡\\\\AppData\\\\Local\\\\Temp\\\\generate_api_doc.py\")"
     ]
   }
 }
